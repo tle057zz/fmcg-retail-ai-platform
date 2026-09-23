@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>03 — Bronze ingestion results | FMCG Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/report.css" />
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topnav">
+      <a class="brand" href="index.html">← Reports index</a>
+      <span class="muted">Report 03</span>
+    </nav>
+
+    <article class="panel">
+      <header class="hero">
+        <p class="eyebrow">Bronze milestone</p>
+        <h1>Bronze ingestion results (notebook 02)</h1>
+        <p class="lede">
+          First medallion load is complete. All eight raw CSVs are in
+          <code>fmcg.bronze.*</code> Delta tables with ingestion metadata.
+        </p>
+        <div class="meta">
+          <span>RAW_PATH: <span class="path">/Volumes/fmcg/bronze/raw</span></span>
+          <span>batch_id: <span class="path">34c2fcde-2c30-4dfb-87b6-5852eae05dad</span></span>
+          <span>Verdict: Pass — Bronze milestone met</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <nav class="toc">
+          <strong>Contents</strong>
+          <ol>
+            <li><a href="#verdict">Verdict</a></li>
+            <li><a href="#loads">Tables loaded</a></li>
+            <li><a href="#metadata">Ingestion metadata</a></li>
+            <li><a href="#quality">Quality checks</a></li>
+            <li><a href="#next">What to do next</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="verdict">1. Verdict</h2>
+        <div class="callout">
+          <strong>Bronze milestone passed.</strong>
+          Notebook <code>02_bronze_ingestion</code> finished without errors.
+          Row counts match exploration. All tables reported <code>meta_ok=True</code>.
+          No notebook fix or re-upload is required for this step.
+        </div>
+
+        <div class="grid-2">
+          <div class="stat"><strong>8 / 8</strong><span>Bronze tables written</span></div>
+          <div class="stat"><strong>8 / 8</strong><span>metadata columns present</span></div>
+          <div class="stat"><strong>2,595,732</strong><span>bronze.transactions rows</span></div>
+          <div class="stat"><strong>36,786,524</strong><span>bronze.promotions rows</span></div>
+        </div>
+
+        <h2 id="loads">2. Tables loaded</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Source CSV</th>
+              <th>Bronze table</th>
+              <th>Rows</th>
+              <th>meta_ok</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>transaction_data.csv</code></td><td><code>fmcg.bronze.transactions</code></td><td>2,595,732</td><td>True</td></tr>
+            <tr><td><code>product.csv</code></td><td><code>fmcg.bronze.products</code></td><td>92,353</td><td>True</td></tr>
+            <tr><td><code>causal_data.csv</code></td><td><code>fmcg.bronze.promotions</code></td><td>36,786,524</td><td>True</td></tr>
+            <tr><td><code>coupon.csv</code></td><td><code>fmcg.bronze.coupons</code></td><td>124,548</td><td>True</td></tr>
+            <tr><td><code>coupon_redempt.csv</code></td><td><code>fmcg.bronze.coupon_redemptions</code></td><td>2,318</td><td>True</td></tr>
+            <tr><td><code>campaign_desc.csv</code></td><td><code>fmcg.bronze.campaigns</code></td><td>30</td><td>True</td></tr>
+            <tr><td><code>campaign_table.csv</code></td><td><code>fmcg.bronze.campaign_households</code></td><td>7,208</td><td>True</td></tr>
+            <tr><td><code>hh_demographic.csv</code></td><td><code>fmcg.bronze.households</code></td><td>801</td><td>True</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">
+          Counts match the exploration report (Spark data rows). First load used
+          <code>mode("overwrite")</code> — full refresh, appropriate for MVP.
+        </p>
+
+        <h2 id="metadata">3. Ingestion metadata</h2>
+        <p>Each Bronze table includes:</p>
+        <ul>
+          <li><code>_ingestion_timestamp</code></li>
+          <li><code>_source_file</code></li>
+          <li><code>_batch_id</code> (shared across this run)</li>
+          <li><code>_ingestion_date</code></li>
+        </ul>
+        <p>
+          Source values were preserved (no Silver-style cleaning). That is correct for Bronze.
+        </p>
+
+        <h2 id="quality">4. Quality checks</h2>
+        <p>
+          Transaction checks in the notebook (non-null keys, row count &gt; 0, metadata columns)
+          completed with <strong>no error / no assert failure</strong> in the export.
+        </p>
+        <p class="muted">
+          Optional manual confirm in a SQL cell:
+          <code>SELECT COUNT(*) FROM fmcg.bronze.transactions;</code>
+          and <code>SHOW TABLES IN fmcg.bronze;</code>
+        </p>
+
+        <h2 id="next">5. What to do next</h2>
+        <ol>
+          <li>Implement Silver for transactions — notebook <code>03_silver_transactions</code>.</li>
+          <li>Then products/customers (<code>04</code>) and promotions/campaigns/coupons (<code>05</code>).</li>
+          <li>Do not start dbt Gold until Silver is clean and tested.</li>
+        </ol>
+
+        <div class="callout">
+          <strong>Silver focus for transactions:</strong>
+          cast types, derive <code>net_sales</code> / discounts / flags, map relative
+          <code>DAY</code> → synthetic date, take absolute discount values, dedupe if needed.
+        </div>
+
+        <p class="footer">
+          Report 03 · Bronze pass ·
+          <a href="02-data-exploration-results.html">Report 02</a> ·
+          <a href="index.html">Index</a>
+        </p>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>01 — Project introduction &amp; dataset | FMCG Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/report.css" />
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topnav">
+      <a class="brand" href="index.html">← Reports index</a>
+      <span class="muted">Report 01</span>
+    </nav>
+
+    <article class="panel">
+      <header class="hero">
+        <p class="eyebrow">Orientation report</p>
+        <h1>Project introduction, plan of work, and dataset guide</h1>
+        <p class="lede">
+          Read this before writing any Spark jobs. It explains why the project exists,
+          what you will build in order, and how the dunnhumby Complete Journey files fit together.
+        </p>
+        <div class="meta">
+          <span>Project: FMCG Retail Data &amp; AI Platform</span>
+          <span>Dataset: dunnhumby — The Complete Journey</span>
+          <span>Local path: <span class="path">data/raw/</span></span>
+        </div>
+      </header>
+
+      <div class="content">
+        <nav class="toc" aria-label="Table of contents">
+          <strong>Contents</strong>
+          <ol>
+            <li><a href="#intro">Project introduction</a></li>
+            <li><a href="#what-to-do">What to do (build order)</a></li>
+            <li><a href="#data-source">Data source</a></li>
+            <li><a href="#dataset">Dataset description (file by file)</a></li>
+            <li><a href="#relationships">How the files relate</a></li>
+            <li><a href="#notes">Practical notes before you start coding</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="intro">1. Project introduction</h2>
+        <p>
+          This project builds a <strong>production-style FMCG retail Data &amp; AI platform</strong>
+          using real household shopping data. The business problem is not “train a model for its own sake.”
+          It is: retailers lack a trusted, end-to-end path from raw transactions to demand insight,
+          promotion evaluation, and management questions answered from governed data.
+        </p>
+        <p>
+          You will ingest and clean retail data in Databricks (Delta Lake), model analytics with dbt,
+          visualise KPIs in Power BI, forecast demand with MLflow-tracked models, and later add a
+          grounded AI assistant that only queries trusted Gold tables.
+        </p>
+
+        <div class="grid-2">
+          <div class="stat">
+            <strong>Medallion</strong>
+            <span>Bronze → Silver → Gold on Databricks</span>
+          </div>
+          <div class="stat">
+            <strong>Stack</strong>
+            <span>PySpark, dbt, Power BI, MLflow, GenAI</span>
+          </div>
+          <div class="stat">
+            <strong>Domain</strong>
+            <span>Sales, promos, customers, demand</span>
+          </div>
+          <div class="stat">
+            <strong>Outcome</strong>
+            <span>Trusted marts + forecasts + AI Q&amp;A</span>
+          </div>
+        </div>
+
+        <h3>Main analytical questions</h3>
+        <ul>
+          <li>Which categories, stores, and products drive sales?</li>
+          <li>Which promotions and coupons actually lift demand?</li>
+          <li>Which products need replenishment priority, and where is demand volatile?</li>
+          <li>Can we forecast demand and flag abnormal spikes or drops?</li>
+          <li>Can managers ask these questions in natural language against trusted data?</li>
+        </ul>
+
+        <h2 id="what-to-do">2. What to do (recommended order)</h2>
+        <p>
+          Do not start with the AI chatbot. The AI layer sits on top of clean, tested Gold data.
+          Follow this sequence so each step has something solid to stand on.
+        </p>
+
+        <ol>
+          <li>
+            <strong>Prep (you are here / just finished raw data).</strong>
+            Repo structure, local Python env, Databricks workspace, catalog
+            <code>fmcg</code> with schemas <code>bronze</code>, <code>silver</code>, <code>gold</code>, <code>ml</code>, <code>ai</code>.
+          </li>
+          <li>
+            <strong>Explore.</strong>
+            Profile every CSV: row counts, nulls, keys, duplicates. Write notebook
+            <code>01_data_exploration</code>.
+          </li>
+          <li>
+            <strong>Bronze.</strong>
+            Load raw files into Delta with ingestion metadata only (no heavy business logic).
+            Milestone: all sources in <code>fmcg.bronze.*</code>.
+          </li>
+          <li>
+            <strong>Silver.</strong>
+            Clean types, remove invalid rows, standardise IDs, derive sales/discount flags.
+          </li>
+          <li>
+            <strong>dbt Gold.</strong>
+            Staging → intermediate → dimensions, facts, and marts. Add tests.
+          </li>
+          <li>
+            <strong>Power BI.</strong>
+            Connect only to Gold marts (never Bronze).
+          </li>
+          <li>
+            <strong>ML.</strong>
+            Demand features, baseline + stronger models, MLflow tracking, batch forecasts.
+          </li>
+          <li>
+            <strong>AI Copilot.</strong>
+            SQL assistant over allow-listed Gold tables, evaluation, responsible AI.
+          </li>
+        </ol>
+
+        <div class="callout">
+          <strong>MVP if time is limited:</strong>
+          Bronze → Silver → dbt Gold → Power BI → demand forecast + MLflow → basic AI SQL assistant.
+          Promotion-response models, Feature Store, and Model Serving can wait.
+        </div>
+
+        <h2 id="data-source">3. Data source</h2>
+        <p>
+          <strong>Source name:</strong> dunnhumby — <em>The Complete Journey</em>.
+        </p>
+        <p>
+          Dunnhumby is a customer-science company known for retail loyalty analytics.
+          <em>The Complete Journey</em> is a widely used public learning dataset of
+          <strong>anonymised household grocery purchasing behaviour</strong> over roughly two years
+          of relative time (days and weeks are numbered from the start of the study, not a public calendar year).
+        </p>
+        <p>
+          It is designed for retail analytics education: basket-level transactions, product hierarchy,
+          in-store / mailer promotion signals, coupon campaigns, and household demographic segments.
+        </p>
+
+        <h3>What the source is good for</h3>
+        <ul>
+          <li>Sales and category performance analysis</li>
+          <li>Promotion and coupon effectiveness studies</li>
+          <li>Customer segmentation (RFM and demographic bands)</li>
+          <li>Demand / velocity modelling at store × product × week grain</li>
+        </ul>
+
+        <h3>What to remember about the source</h3>
+        <ul>
+          <li>
+            <strong>Relative time:</strong> columns like <code>DAY</code> and <code>WEEK_NO</code> are study-relative.
+            For analytics you often map them to a synthetic calendar so dashboards have dates.
+          </li>
+          <li>
+            <strong>Anonymisation:</strong> household keys are IDs, not real people. Demographic fields in this
+            export may appear as <code>classification_*</code> bands instead of classic labels like <code>AGE_DESC</code>.
+          </li>
+          <li>
+            <strong>Scale:</strong> transactions are large (~2.6M rows). Causal/promotion data is much larger (~37M rows).
+            Plan Spark/Databricks compute accordingly; do not try to open <code>causal_data.csv</code> fully in Excel.
+          </li>
+        </ul>
+
+        <div class="callout warn">
+          <strong>Local + Databricks layout:</strong>
+          Local CSVs live under
+          <span class="path">fmcg-retail-ai-platform/data/raw/</span>
+          (gitignored). On Databricks they are available at
+          <span class="path">/Volumes/fmcg/bronze/raw</span>
+          (confirmed by exploration). The zip archive sits one level above the project folder.
+        </div>
+
+        <h2 id="dataset">4. Dataset description (file by file)</h2>
+        <p>
+          This project copy contains <strong>8 CSV files</strong>. Counts below include the header row
+          (subtract 1 for approximate data rows).
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Approx. size</th>
+              <th>Lines</th>
+              <th>Role in the platform</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>transaction_data.csv</code></td>
+              <td>135 MB</td>
+              <td>2,595,733</td>
+              <td>Core fact source — every purchase line</td>
+            </tr>
+            <tr>
+              <td><code>product.csv</code></td>
+              <td>6.1 MB</td>
+              <td>92,354</td>
+              <td>Product dimension / hierarchy</td>
+            </tr>
+            <tr>
+              <td><code>causal_data.csv</code></td>
+              <td>664 MB</td>
+              <td>36,786,525</td>
+              <td>In-store display &amp; mailer promotion signals</td>
+            </tr>
+            <tr>
+              <td><code>coupon.csv</code></td>
+              <td>2.7 MB</td>
+              <td>124,549</td>
+              <td>Coupon–product–campaign mapping</td>
+            </tr>
+            <tr>
+              <td><code>coupon_redempt.csv</code></td>
+              <td>53 KB</td>
+              <td>2,319</td>
+              <td>Coupon redemption events</td>
+            </tr>
+            <tr>
+              <td><code>campaign_desc.csv</code></td>
+              <td>&lt;1 KB</td>
+              <td>31</td>
+              <td>Campaign type and day range</td>
+            </tr>
+            <tr>
+              <td><code>campaign_table.csv</code></td>
+              <td>94 KB</td>
+              <td>7,209</td>
+              <td>Which households were targeted by which campaign</td>
+            </tr>
+            <tr>
+              <td><code>hh_demographic.csv</code></td>
+              <td>42 KB</td>
+              <td>802</td>
+              <td>Household demographic segments</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>4.1 <code>transaction_data.csv</code> — the foundation</h3>
+        <p>
+          One row ≈ one product line inside a basket (shopping trip). This table drives sales, demand,
+          and most Gold facts.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Column</th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>household_key</code></td><td>Anonymised household / customer ID</td></tr>
+            <tr><td><code>BASKET_ID</code></td><td>Shopping trip / basket ID</td></tr>
+            <tr><td><code>DAY</code></td><td>Relative day number in the study</td></tr>
+            <tr><td><code>PRODUCT_ID</code></td><td>SKU key → joins to <code>product.csv</code></td></tr>
+            <tr><td><code>QUANTITY</code></td><td>Units purchased</td></tr>
+            <tr><td><code>SALES_VALUE</code></td><td>Net line sales amount after typical retail discounts in the feed</td></tr>
+            <tr><td><code>STORE_ID</code></td><td>Store where the trip happened</td></tr>
+            <tr><td><code>RETAIL_DISC</code></td><td>Retail discount (often stored as negative or zero)</td></tr>
+            <tr><td><code>TRANS_TIME</code></td><td>Transaction time (HHMM-style integer)</td></tr>
+            <tr><td><code>WEEK_NO</code></td><td>Relative week number</td></tr>
+            <tr><td><code>COUPON_DISC</code></td><td>Coupon discount amount</td></tr>
+            <tr><td><code>COUPON_MATCH_DISC</code></td><td>Manufacturer match / related coupon discount</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4.2 <code>product.csv</code> — product hierarchy</h3>
+        <p>Use this to roll sales up from SKU → sub-commodity → commodity → department.</p>
+        <table>
+          <thead>
+            <tr><th>Column</th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>PRODUCT_ID</code></td><td>Primary key</td></tr>
+            <tr><td><code>MANUFACTURER</code></td><td>Manufacturer code</td></tr>
+            <tr><td><code>DEPARTMENT</code></td><td>Top hierarchy (e.g. GROCERY)</td></tr>
+            <tr><td><code>BRAND</code></td><td>Brand label (e.g. National)</td></tr>
+            <tr><td><code>COMMODITY_DESC</code></td><td>Commodity category</td></tr>
+            <tr><td><code>SUB_COMMODITY_DESC</code></td><td>Finer category</td></tr>
+            <tr><td><code>CURR_SIZE_OF_PRODUCT</code></td><td>Pack size text</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4.3 <code>causal_data.csv</code> — promotions (display / mailer)</h3>
+        <p>
+          Very large table describing promotional presence by product, store, and week.
+          <code>display</code> and <code>mailer</code> codes indicate whether the item was featured
+          (values like <code>0</code>, letter codes, etc.). In Silver you usually turn these into flags.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Column</th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>PRODUCT_ID</code></td><td>SKU</td></tr>
+            <tr><td><code>STORE_ID</code></td><td>Store</td></tr>
+            <tr><td><code>WEEK_NO</code></td><td>Relative week</td></tr>
+            <tr><td><code>display</code></td><td>In-store display code</td></tr>
+            <tr><td><code>mailer</code></td><td>Mailer / circular code</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4.4 Coupons — <code>coupon.csv</code> &amp; <code>coupon_redempt.csv</code></h3>
+        <ul>
+          <li>
+            <code>coupon.csv</code>: which coupon UPC applies to which product in which campaign
+            (<code>COUPON_UPC</code>, <code>PRODUCT_ID</code>, <code>CAMPAIGN</code>).
+          </li>
+          <li>
+            <code>coupon_redempt.csv</code>: actual redemptions by household and day
+            (<code>household_key</code>, <code>DAY</code>, <code>COUPON_UPC</code>, <code>CAMPAIGN</code>).
+          </li>
+        </ul>
+
+        <h3>4.5 Campaigns — <code>campaign_desc.csv</code> &amp; <code>campaign_table.csv</code></h3>
+        <ul>
+          <li>
+            <code>campaign_desc.csv</code>: campaign metadata —
+            <code>DESCRIPTION</code> (e.g. TypeA/B/C), <code>CAMPAIGN</code>, <code>START_DAY</code>, <code>END_DAY</code>.
+          </li>
+          <li>
+            <code>campaign_table.csv</code>: targeting —
+            which <code>household_key</code> received which <code>CAMPAIGN</code> / type.
+          </li>
+        </ul>
+
+        <h3>4.6 <code>hh_demographic.csv</code> — household segments</h3>
+        <p>
+          About 800 households with demographic attributes. In <em>this</em> export, several fields are
+          anonymised as <code>classification_1</code> … <code>classification_5</code>, plus
+          <code>HOMEOWNER_DESC</code>, <code>KID_CATEGORY_DESC</code>, and <code>household_key</code>.
+        </p>
+        <p class="muted">
+          Treat these as segment labels for analytics and AI — avoid exposing or stressing individual-level stories.
+        </p>
+
+        <h2 id="relationships">5. How the files relate</h2>
+        <p>Think of a simple join map:</p>
+        <ul>
+          <li><code>transaction_data.PRODUCT_ID</code> → <code>product.PRODUCT_ID</code></li>
+          <li><code>transaction_data.household_key</code> → <code>hh_demographic.household_key</code> (not all households may appear in both)</li>
+          <li><code>transaction_data</code> × <code>causal_data</code> on product + store + week for promo context</li>
+          <li><code>campaign_*</code> + <code>coupon*</code> for campaign response and redemption analysis</li>
+        </ul>
+        <p>
+          In the medallion design: these CSVs land in <strong>Bronze</strong> as-is (plus ingestion metadata),
+          become cleaned entities in <strong>Silver</strong>, and feed dimensional models / marts in <strong>Gold</strong> via dbt.
+        </p>
+
+        <h2 id="notes">6. Practical notes before you start coding</h2>
+        <ol>
+          <li>Explore with samples first (<code>limit</code> / small fractions), especially for <code>causal_data.csv</code>.</li>
+          <li>Decide key quality rules early: non-null product/store/basket IDs, non-negative quantity and sales.</li>
+          <li>Document your day→date mapping when you invent a synthetic calendar.</li>
+          <li>Keep Power BI and the AI assistant pointed at Gold only.</li>
+        </ol>
+
+        <div class="callout">
+          <strong>Suggested next learning step:</strong>
+          manually inspect a few rows of <code>transaction_data.csv</code> and <code>product.csv</code>,
+          then build notebook <code>01_data_exploration</code> to profile all eight files.
+        </div>
+
+        <p class="footer">
+          Report 01 · FMCG Retail Data &amp; AI Platform · Generated for local learning use ·
+          <a href="index.html">Back to index</a>
+        </p>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

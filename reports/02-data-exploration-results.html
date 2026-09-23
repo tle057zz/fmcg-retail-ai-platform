@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>02 — Data exploration results | FMCG Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/report.css" />
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topnav">
+      <a class="brand" href="index.html">← Reports index</a>
+      <span class="muted">Report 02</span>
+    </nav>
+
+    <article class="panel">
+      <header class="hero">
+        <p class="eyebrow">Exploration results</p>
+        <h1>Data exploration findings (notebook 01)</h1>
+        <p class="lede">
+          Summary of the Databricks run of <code>01_data_exploration</code>.
+          All eight source files were readable; no blocking issues for Bronze ingestion.
+        </p>
+        <div class="meta">
+          <span>RAW_PATH: <span class="path">/Volumes/fmcg/bronze/raw</span></span>
+          <span>Source: notebooks/01_data_exploration.html export</span>
+          <span>Verdict: Pass — ready for Bronze</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <nav class="toc" aria-label="Table of contents">
+          <strong>Contents</strong>
+          <ol>
+            <li><a href="#verdict">Verdict</a></li>
+            <li><a href="#files">File inventory &amp; row counts</a></li>
+            <li><a href="#nulls">Null checks</a></li>
+            <li><a href="#cardinalities">Transaction cardinalities</a></li>
+            <li><a href="#notes">Notes for Silver later</a></li>
+            <li><a href="#next">What to do next</a></li>
+          </ol>
+        </nav>
+
+        <h2 id="verdict">1. Verdict</h2>
+        <div class="callout">
+          <strong>No notebook defects found.</strong>
+          Exploration completed successfully for all 8 CSVs. Zero nulls on profiled columns,
+          zero exact duplicate transaction rows, and key ranges look coherent.
+          You do <em>not</em> need to re-upload notebook 01 to Databricks for fixes.
+        </div>
+
+        <div class="grid-2">
+          <div class="stat"><strong>8 / 8</strong><span>files readable (`ok = true`)</span></div>
+          <div class="stat"><strong>0</strong><span>exact duplicate txn rows</span></div>
+          <div class="stat"><strong>2,500</strong><span>unique households in transactions</span></div>
+          <div class="stat"><strong>102 weeks</strong><span>WEEK_NO range 1–102</span></div>
+        </div>
+
+        <h2 id="files">2. File inventory &amp; row counts</h2>
+        <p>
+          Listed from <span class="path">/Volumes/fmcg/bronze/raw</span>.
+          Row counts are Spark <code>count()</code> (data rows, excluding header).
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Size (bytes)</th>
+              <th>Rows</th>
+              <th>Cols</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>transaction_data.csv</code></td><td>141,742,346</td><td>2,595,732</td><td>12</td><td>ok</td></tr>
+            <tr><td><code>product.csv</code></td><td>6,429,896</td><td>92,353</td><td>7</td><td>ok</td></tr>
+            <tr><td><code>causal_data.csv</code></td><td>695,858,427</td><td>36,786,524</td><td>5</td><td>ok</td></tr>
+            <tr><td><code>coupon.csv</code></td><td>2,822,804</td><td>124,548</td><td>3</td><td>ok</td></tr>
+            <tr><td><code>coupon_redempt.csv</code></td><td>54,108</td><td>2,318</td><td>4</td><td>ok</td></tr>
+            <tr><td><code>campaign_desc.csv</code></td><td>540</td><td>30</td><td>4</td><td>ok</td></tr>
+            <tr><td><code>campaign_table.csv</code></td><td>95,874</td><td>7,208</td><td>3</td><td>ok</td></tr>
+            <tr><td><code>hh_demographic.csv</code></td><td>43,233</td><td>801</td><td>8</td><td>ok</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="nulls">3. Null checks</h2>
+        <p>
+          For every column in every file above, Spark reported <strong>0 nulls</strong>.
+          That is excellent for Bronze (still keep not-null tests in Silver/dbt — schema is nullable).
+        </p>
+
+        <h2 id="cardinalities">4. Transaction cardinalities</h2>
+        <table>
+          <thead>
+            <tr><th>Metric</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Unique households</td><td>2,500</td></tr>
+            <tr><td>Unique stores</td><td>582</td></tr>
+            <tr><td>Unique products (in transactions)</td><td>92,339</td></tr>
+            <tr><td>Unique baskets</td><td>276,484</td></tr>
+            <tr><td>WEEK_NO min / max</td><td>1 / 102</td></tr>
+            <tr><td>DAY min / max</td><td>1 / 711</td></tr>
+            <tr><td>Exact duplicate rows</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">
+          Product master has 92,353 SKUs vs 92,339 distinct products in transactions —
+          about 14 products never appear in a purchase line. Normal; handle as left-join orphans in Silver quality checks later.
+        </p>
+        <p class="muted">
+          Demographic table has 801 households vs 2,500 shopping households —
+          demographics cover only a subset. Segment analysis must not assume full coverage.
+        </p>
+
+        <h2 id="notes">5. Notes for Silver later (not blockers)</h2>
+        <ul>
+          <li>
+            <strong>Discount sign:</strong> sample <code>RETAIL_DISC</code> values include negatives (e.g. <code>-0.6</code>).
+            Bronze should keep as-is; Silver should take absolute values when building discount totals.
+          </li>
+          <li>
+            <strong>Relative time:</strong> DAY 1–711 and WEEK_NO 1–102 confirm study-relative calendar
+            (map to synthetic dates in Silver).
+          </li>
+          <li>
+            <strong>Demographics:</strong> anonymised <code>classification_*</code> columns confirmed
+            (not classic AGE_DESC labels).
+          </li>
+          <li>
+            <strong>Scale:</strong> <code>causal_data</code> (~37M rows) dominates runtime — keep Bronze incremental-friendly later.
+          </li>
+        </ul>
+
+        <h2 id="next">6. What to do next</h2>
+        <ol>
+          <li>Implement / fill notebook <code>02_bronze_ingestion</code>.</li>
+          <li>Load each CSV into <code>fmcg.bronze.*</code> Delta with ingestion metadata.</li>
+          <li>Re-check Bronze with simple SQL quality queries, then move to Silver.</li>
+        </ol>
+
+        <div class="callout">
+          <strong>Suggested Bronze table map</strong><br />
+          transactions ← transaction_data · products ← product · promotions ← causal_data ·
+          coupons ← coupon · coupon_redemptions ← coupon_redempt · campaigns ← campaign_desc ·
+          campaign_households ← campaign_table · households ← hh_demographic
+        </div>
+
+        <p class="footer">
+          Report 02 · Exploration pass ·
+          <a href="01-project-introduction-and-dataset.html">Report 01</a> ·
+          <a href="index.html">Index</a>
+        </p>
+      </div>
+    </article>
+  </div>
+</body>
+</html>
